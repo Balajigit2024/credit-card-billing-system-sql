@@ -1,0 +1,516 @@
+/*
+** Author: Balaji Gewini Vijayabaskar, Nagalakshmi Cherukuri
+** Course: IFT/530
+** SQL Server Version: Microsoft SQL Server 2022(RTM)
+** History             
+** Date Created   Comments
+** 04/30/2025     Credit Card Billing System (Final Project)
+*/
+CREATE DATABASE Final_Project_100;
+
+USE Final_Project_100;
+
+-- Drop existing tables in dependency order
+IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('LateFees') AND xtype = 'U')
+DROP TABLE LateFees;
+
+IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('Payments') AND xtype = 'U')
+DROP TABLE Payments;
+
+IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('BillingStatements') AND xtype = 'U')
+DROP TABLE BillingStatements;
+
+IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('Transactions') AND xtype = 'U')
+DROP TABLE Transactions;
+
+IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('Rewards') AND xtype = 'U')
+DROP TABLE Rewards;
+
+IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('CreditCards') AND xtype = 'U')
+DROP TABLE CreditCards;
+
+IF EXISTS (SELECT * FROM sysobjects WHERE id = OBJECT_ID('Customers') AND xtype = 'U')
+DROP TABLE Customers;
+
+-- Customers Table
+CREATE TABLE Customers (
+    customer_id INT IDENTITY(1,1) PRIMARY KEY,
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(15) NOT NULL UNIQUE,
+    email VARCHAR(100),
+    address VARCHAR(300)
+);
+
+-- CreditCards Table
+CREATE TABLE CreditCards (
+    card_id INT IDENTITY(1,1) PRIMARY KEY,
+    customer_id INT NOT NULL,
+    card_number VARCHAR(16) NOT NULL UNIQUE,
+    card_type VARCHAR(20) NOT NULL CHECK (card_type IN ('Visa', 'MasterCard', 'Amex')),
+    credit_limit DECIMAL(10,2) NOT NULL,
+    expiry_date DATE NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+);
+
+-- Transactions Table (Fact Table)
+CREATE TABLE Transactions (
+    txn_id INT IDENTITY(1,1) PRIMARY KEY,
+    card_id INT NOT NULL,
+    txn_date DATETIME NOT NULL,
+    merchant_name VARCHAR(100) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL CHECK (amount >= 0),
+    txn_type VARCHAR(15) NOT NULL CHECK (txn_type IN ('DEBIT', 'REFUND')),
+    FOREIGN KEY (card_id) REFERENCES CreditCards(card_id)
+);
+
+-- BillingStatements Table (Fact Table)
+CREATE TABLE BillingStatements (
+    statement_id INT IDENTITY(1,1) PRIMARY KEY,
+    card_id INT NOT NULL,
+    billing_period VARCHAR(20) NOT NULL,
+    total_due DECIMAL(10,2) NOT NULL,
+    due_date DATE NOT NULL,
+    min_due DECIMAL(10,2) NOT NULL,
+    generated_on DATE NOT NULL,
+    FOREIGN KEY (card_id) REFERENCES CreditCards(card_id)
+);
+
+-- Payments Table
+CREATE TABLE Payments (
+    payment_id INT IDENTITY(1,1) PRIMARY KEY,
+    statement_id INT NOT NULL,
+    paid_on DATE NOT NULL,
+    paid_amount DECIMAL(10,2) NOT NULL CHECK (paid_amount >= 0),
+    payment_method VARCHAR(50) NOT NULL,
+    FOREIGN KEY (statement_id) REFERENCES BillingStatements(statement_id)
+);
+
+-- LateFees Table
+CREATE TABLE LateFees (
+    fee_id INT IDENTITY(1,1) PRIMARY KEY,
+    statement_id INT NOT NULL,
+    fee_amount DECIMAL(10,2) NOT NULL,
+    reason VARCHAR(200) NOT NULL,
+    applied_on DATE NOT NULL,
+    FOREIGN KEY (statement_id) REFERENCES BillingStatements(statement_id)
+);
+
+-- Rewards Table
+CREATE TABLE Rewards (
+    reward_id INT IDENTITY(1,1) PRIMARY KEY,
+    card_id INT NOT NULL,
+    points_earned INT NOT NULL DEFAULT 0,
+    points_redeemed INT NOT NULL DEFAULT 0,
+    last_updated DATE NOT NULL,
+    FOREIGN KEY (card_id) REFERENCES CreditCards(card_id)
+);
+
+/*
+** Author: Balaji Gewini Vijayabaskar, Nagalakshmi Cherukuri
+** Course: IFT/530
+** SQL Server Version: Microsoft SQL Server 2022(RTM)
+** History             
+** Date Created   Comments
+** 04/30/2025     Credit Card Billing System (Final Project)
+*/
+use Final_Project_100;
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 1', '9876543201', 'customer1@mail.com', '1 Main St, City');
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 2', '9876543202', 'customer2@mail.com', '2 Main St, City');
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 3', '9876543203', 'customer3@mail.com', '3 Main St, City');
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 4', '9876543204', 'customer4@mail.com', '4 Main St, City');
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 5', '9876543205', 'customer5@mail.com', '5 Main St, City');
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 6', '9876543206', 'customer6@mail.com', '6 Main St, City');
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 7', '9876543207', 'customer7@mail.com', '7 Main St, City');
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 8', '9876543208', 'customer8@mail.com', '8 Main St, City');
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 9', '9876543209', 'customer9@mail.com', '9 Main St, City');
+INSERT INTO Customers (full_name, phone, email, address) VALUES ('Customer 10', '9876543210', 'customer10@mail.com', '10 Main St, City');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (1, '4111111111111101', 'Visa', 8385, '2027-12-31');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (2, '4111111111111102', 'Amex', 8354, '2027-12-31');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (3, '4111111111111103', 'Visa', 2904, '2027-12-31');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (4, '4111111111111104', 'Amex', 9402, '2027-12-31');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (5, '4111111111111105', 'Visa', 6966, '2027-12-31');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (6, '4111111111111106', 'MasterCard', 3473, '2027-12-31');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (7, '4111111111111107', 'Amex', 3907, '2027-12-31');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (8, '4111111111111108', 'MasterCard', 6853, '2027-12-31');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (9, '4111111111111109', 'MasterCard', 2179, '2027-12-31');
+INSERT INTO CreditCards (customer_id, card_number, card_type, credit_limit, expiry_date) VALUES (10, '4111111111111110', 'MasterCard', 5876, '2027-12-31');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (7, '2025-04-02 00:00:00', 'Merchant 1', 110.59, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (10, '2025-04-03 00:00:00', 'Merchant 2', 94.48, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (3, '2025-04-04 00:00:00', 'Merchant 3', 166.04, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (8, '2025-04-05 00:00:00', 'Merchant 4', 75.84, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (10, '2025-04-06 00:00:00', 'Merchant 5', 175.48, 'DEBIT');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (1, '2025-04-07 00:00:00', 'Merchant 6', 273.88, 'DEBIT');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (10, '2025-04-08 00:00:00', 'Merchant 7', 207.64, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (3, '2025-04-09 00:00:00', 'Merchant 8', 128.99, 'DEBIT');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (9, '2025-04-10 00:00:00', 'Merchant 9', 396.19, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (8, '2025-04-11 00:00:00', 'Merchant 10', 131.93, 'DEBIT');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (9, '2025-04-12 00:00:00', 'Merchant 11', 113.53, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (4, '2025-04-13 00:00:00', 'Merchant 12', 58.06, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (3, '2025-04-14 00:00:00', 'Merchant 13', 486.93, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (4, '2025-04-15 00:00:00', 'Merchant 14', 116.3, 'DEBIT');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (3, '2025-04-16 00:00:00', 'Merchant 15', 452.32, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (3, '2025-04-17 00:00:00', 'Merchant 16', 363.77, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (2, '2025-04-18 00:00:00', 'Merchant 17', 223.39, 'REFUND');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (4, '2025-04-19 00:00:00', 'Merchant 18', 79.01, 'DEBIT');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (1, '2025-04-20 00:00:00', 'Merchant 19', 109.64, 'DEBIT');
+INSERT INTO Transactions (card_id, txn_date, merchant_name, amount, txn_type) VALUES (4, '2025-04-21 00:00:00', 'Merchant 20', 494.36, 'DEBIT');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (1, 'Apr 2025', 105.51, '2025-04-25', 39.54, '2025-04-01');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (2, 'Apr 2025', 642.87, '2025-04-25', 66.23, '2025-04-01');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (3, 'Apr 2025', 389.84, '2025-04-25', 57.37, '2025-04-01');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (4, 'Apr 2025', 560.19, '2025-04-25', 76.61, '2025-04-01');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (5, 'Apr 2025', 896.66, '2025-04-25', 62.57, '2025-04-01');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (6, 'Apr 2025', 718.33, '2025-04-25', 99.07, '2025-04-01');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (7, 'Apr 2025', 640.49, '2025-04-25', 53.78, '2025-04-01');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (8, 'Apr 2025', 179.92, '2025-04-25', 29.28, '2025-04-01');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (9, 'Apr 2025', 395.71, '2025-04-25', 81.91, '2025-04-01');
+INSERT INTO BillingStatements (card_id, billing_period, total_due, due_date, min_due, generated_on) VALUES (10, 'Apr 2025', 935.92, '2025-04-25', 88.49, '2025-04-01');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (6, '2025-04-11', 370.88, 'Card');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (8, '2025-04-12', 103.47, 'Card');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (9, '2025-04-13', 321.55, 'Card');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (4, '2025-04-14', 356.23, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (1, '2025-04-15', 179.49, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (1, '2025-04-16', 481.75, 'Bank');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (10, '2025-04-17', 438.42, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (3, '2025-04-18', 350.3, 'Card');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (2, '2025-04-19', 61.06, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (8, '2025-04-20', 179.37, 'Bank');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (6, '2025-04-21', 318.86, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (8, '2025-04-22', 457.92, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (10, '2025-04-23', 455.48, 'Card');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (1, '2025-04-24', 479.1, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (4, '2025-04-25', 159.39, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (10, '2025-04-26', 197.41, 'Bank');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (6, '2025-04-27', 430.05, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (6, '2025-04-28', 51.89, 'Bank');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (1, '2025-04-29', 373.28, 'UPI');
+INSERT INTO Payments (statement_id, paid_on, paid_amount, payment_method) VALUES (4, '2025-04-30', 418.13, 'UPI');
+INSERT INTO LateFees (statement_id, fee_amount, reason, applied_on) VALUES (2, 30.01, 'Late payment', '2025-04-6');
+INSERT INTO LateFees (statement_id, fee_amount, reason, applied_on) VALUES (4, 27.44, 'Late payment', '2025-04-7');
+INSERT INTO LateFees (statement_id, fee_amount, reason, applied_on) VALUES (3, 37.35, 'Late payment', '2025-04-8');
+INSERT INTO LateFees (statement_id, fee_amount, reason, applied_on) VALUES (7, 15.72, 'Late payment', '2025-04-9');
+INSERT INTO LateFees (statement_id, fee_amount, reason, applied_on) VALUES (8, 38.42, 'Late payment', '2025-04-10');
+INSERT INTO LateFees (statement_id, fee_amount, reason, applied_on)
+VALUES 
+(2, 30.01, 'Late payment', '2025-04-06'),
+(4, 27.44, 'Late payment', '2025-04-07'),
+(3, 37.35, 'Late payment', '2025-04-08'),
+(7, 15.72, 'Late payment', '2025-04-09'),
+(8, 38.42, 'Late payment', '2025-04-10'),
+(1, 25.00, 'Late payment', '2025-04-11'),
+(2, 32.75, 'Late payment', '2025-04-12'),
+(3, 29.99, 'Late payment', '2025-04-13'),
+(4, 33.50, 'Late payment', '2025-04-14'),
+(5, 40.00, 'Late payment', '2025-04-15'),
+(6, 30.00, 'Late payment', '2025-04-16'),
+(1, 15.00, 'Late payment', '2025-05-06'),
+(2, 18.00, 'Late payment', '2025-05-07'),
+(3, 12.50, 'Late payment', '2025-05-08'),
+(4, 20.00, 'Late payment', '2025-05-09'),
+(5, 22.75, 'Late payment', '2025-05-10'),
+(6, 19.00, 'Late payment', '2025-05-11'),
+(7, 17.25, 'Late payment', '2025-05-12'),
+(8, 23.10, 'Late payment', '2025-05-13'),
+(9, 21.45, 'Late payment', '2025-05-14');
+GO
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (1, 270, 160, '2025-04-10');
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (2, 867, 265, '2025-04-10');
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (3, 990, 479, '2025-04-10');
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (4, 825, 206, '2025-04-10');
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (5, 601, 115, '2025-04-10');
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (6, 641, 287, '2025-04-10');
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (7, 935, 24, '2025-04-10');
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (8, 394, 149, '2025-04-10');
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (9, 615, 416, '2025-04-10');
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated) VALUES (10, 678, 269, '2025-04-10');
+
+/*
+** Author: Balaji Gewini Vijayabaskar, Nagalakshmi Cherukuri
+** Course: IFT/530
+** SQL Server Version: Microsoft SQL Server 2022(RTM)
+** History             
+** Date Created   Comments
+** 04/30/2025     Credit Card Billing System (Final Project)
+*/
+USE Final_Project_100;
+
+-- Drop existing views if they exist
+IF OBJECT_ID('vw_HighOutstandingBalances', 'V') IS NOT NULL
+    DROP VIEW vw_HighOutstandingBalances;
+GO
+
+CREATE VIEW vw_HighOutstandingBalances AS
+SELECT 
+    c.full_name,
+    cc.card_number,
+    bs.billing_period,
+    bs.total_due
+FROM 
+    Customers c
+JOIN CreditCards cc ON c.customer_id = cc.customer_id
+JOIN BillingStatements bs ON cc.card_id = bs.card_id
+WHERE 
+    bs.total_due > 500;
+GO
+SELECT * FROM vw_HighOutstandingBalances;
+GO
+
+-- View 2: Recent Late Fees
+IF OBJECT_ID('vw_RecentLateFees', 'V') IS NOT NULL
+    DROP VIEW vw_RecentLateFees;
+GO
+
+CREATE VIEW vw_RecentLateFees AS
+SELECT 
+    c.full_name,
+    cc.card_number,
+    bs.billing_period,
+    lf.fee_amount,
+    lf.applied_on
+FROM 
+    Customers c
+JOIN CreditCards cc ON c.customer_id = cc.customer_id
+JOIN BillingStatements bs ON cc.card_id = bs.card_id
+JOIN LateFees lf ON bs.statement_id = lf.statement_id
+WHERE 
+    lf.applied_on >= DATEADD(DAY, -30, GETDATE());
+GO
+SELECT * FROM vw_RecentLateFees;
+GO
+-- View 3: Reward Summary
+IF OBJECT_ID('vw_RewardSummary', 'V') IS NOT NULL
+    DROP VIEW vw_RewardSummary;
+GO
+
+CREATE VIEW vw_RewardSummary AS
+SELECT 
+    c.full_name,
+    cc.card_number,
+    r.points_earned,
+    r.points_redeemed,
+    (r.points_earned - r.points_redeemed) AS remaining_points
+FROM 
+    Customers c
+JOIN CreditCards cc ON c.customer_id = cc.customer_id
+JOIN Rewards r ON cc.card_id = r.card_id
+WHERE 
+    r.points_earned > 0;
+GO
+SELECT * FROM vw_RewardSummary;
+GO
+
+/*
+** Author: Balaji Gewini Vijayabaskar, Nagalakshmi Cherukuri
+** Course: IFT/530
+** SQL Server Version: Microsoft SQL Server 2022(RTM)
+** History             
+** Date Created   Comments
+** 04/30/2025     Credit Card Billing System (Final Project)
+*/
+USE Final_Project_100;
+GO
+
+-- Step 1: Create the Audit Table
+IF OBJECT_ID('Rewards_Audit', 'U') IS NOT NULL
+    DROP TABLE Rewards_Audit;
+GO
+
+CREATE TABLE Rewards_Audit (
+    audit_id INT IDENTITY(1,1) PRIMARY KEY,
+    reward_id INT,
+    card_id INT,
+    points_earned INT,
+    points_redeemed INT,
+    last_updated DATE,
+    action_type VARCHAR(10), -- 'INSERT', 'UPDATE', 'DELETE'
+    changed_on DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- Step 2: Create Trigger for INSERT
+IF OBJECT_ID('trg_Reward_Insert', 'TR') IS NOT NULL
+    DROP TRIGGER trg_Reward_Insert;
+GO
+
+CREATE TRIGGER trg_Reward_Insert
+ON Rewards
+AFTER INSERT
+AS
+BEGIN
+    INSERT INTO Rewards_Audit (reward_id, card_id, points_earned, points_redeemed, last_updated, action_type)
+    SELECT reward_id, card_id, points_earned, points_redeemed, last_updated, 'INSERT'
+    FROM inserted;
+END;
+GO
+
+-- Step 3: Create Trigger for UPDATE
+IF OBJECT_ID('trg_Reward_Update', 'TR') IS NOT NULL
+    DROP TRIGGER trg_Reward_Update;
+GO
+
+CREATE TRIGGER trg_Reward_Update
+ON Rewards
+AFTER UPDATE
+AS
+BEGIN
+    INSERT INTO Rewards_Audit (reward_id, card_id, points_earned, points_redeemed, last_updated, action_type)
+    SELECT reward_id, card_id, points_earned, points_redeemed, last_updated, 'UPDATE'
+    FROM inserted;
+END;
+GO
+
+-- Step 4: Create Trigger for DELETE
+IF OBJECT_ID('trg_Reward_Delete', 'TR') IS NOT NULL
+    DROP TRIGGER trg_Reward_Delete;
+GO
+
+CREATE TRIGGER trg_Reward_Delete
+ON Rewards
+AFTER DELETE
+AS
+BEGIN
+    INSERT INTO Rewards_Audit (reward_id, card_id, points_earned, points_redeemed, last_updated, action_type)
+    SELECT reward_id, card_id, points_earned, points_redeemed, last_updated, 'DELETE'
+    FROM deleted;
+END;
+GO
+
+-- Step 5: Test Scripts
+-- Insert new reward (will trigger INSERT)
+INSERT INTO Rewards (card_id, points_earned, points_redeemed, last_updated)
+VALUES (1, 100, 10, '2025-04-28');
+
+-- Update reward (will trigger UPDATE)
+UPDATE Rewards
+SET points_earned = 10
+WHERE card_id = 1;
+
+-- Delete reward (will trigger DELETE)
+DELETE FROM Rewards
+WHERE card_id = 1;
+
+-- View audit logs
+SELECT * FROM Rewards_Audit;
+GO
+
+
+/*
+** Author: Balaji Gewini Vijayabaskar, Nagalakshmi Cherukuri
+** Course: IFT/530
+** SQL Server Version: Microsoft SQL Server 2022(RTM)
+** History             
+** Date Created   Comments
+** 04/30/2025     Credit Card Billing System (Final Project)
+*/
+USE Final_Project_100;
+GO
+
+-- USER DEFINED FUNCTION: Get Total Rewards by Card ID
+
+IF OBJECT_ID('dbo.fn_GetTotalRewardPoints', 'FN') IS NOT NULL
+    DROP FUNCTION dbo.fn_GetTotalRewardPoints;
+GO
+
+CREATE FUNCTION dbo.fn_GetTotalRewardPoints (@card_id INT)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @totalPoints INT;
+    SELECT @totalPoints = ISNULL(SUM(points_earned - points_redeemed), 0)
+    FROM Rewards
+    WHERE card_id = @card_id;
+
+    RETURN @totalPoints;
+END;
+GO
+
+
+-- STORED PROCEDURE: Get Customer Billing Summary
+
+IF OBJECT_ID('dbo.sp_GetCustomerBillingSummary', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_GetCustomerBillingSummary;
+GO
+
+CREATE PROCEDURE dbo.sp_GetCustomerBillingSummary
+    @customer_id INT
+AS
+BEGIN
+    SELECT 
+        c.full_name,
+        cc.card_number,
+        bs.billing_period,
+        bs.total_due,
+        bs.min_due,
+        bs.due_date
+    FROM Customers c
+    JOIN CreditCards cc ON c.customer_id = cc.customer_id
+    JOIN BillingStatements bs ON cc.card_id = bs.card_id
+    WHERE c.customer_id = @customer_id;
+END;
+GO
+
+-- TESTING
+
+
+-- Test the UDF
+SELECT dbo.fn_GetTotalRewardPoints(0) AS TotalRewardPoints;
+GO
+
+-- Test the stored procedure
+EXEC dbo.sp_GetCustomerBillingSummary @customer_id = 1;
+GO
+
+/*
+** Author: Balaji Gewini Vijayabaskar, Nagalakshmi Cherukuri
+** Course: IFT/530
+** SQL Server Version: Microsoft SQL Server 2022(RTM)
+** History             
+** Date Created   Comments
+** 04/30/2025     Credit Card Billing System (Final Project)
+*/
+USE Final_Project_100;
+GO
+
+-- CURSOR: Print all billing statements with total_due > 0
+
+
+-- DROP existing procedure if it exists
+IF OBJECT_ID('dbo.sp_ProcessBillingDue', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_ProcessBillingDue;
+GO
+
+-- CREATE procedure that uses a CURSOR
+CREATE PROCEDURE dbo.sp_ProcessBillingDue
+AS
+BEGIN
+    DECLARE @statement_id INT,
+            @total_due DECIMAL(10,2),
+            @due_date DATE;
+
+    DECLARE billing_cursor CURSOR FOR
+    SELECT statement_id, total_due, due_date
+    FROM BillingStatements
+    WHERE total_due > 150;
+
+    OPEN billing_cursor;
+
+    FETCH NEXT FROM billing_cursor INTO @statement_id, @total_due, @due_date;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        PRINT 'Statement ID: ' + CAST(@statement_id AS VARCHAR) +
+              ' | Due: $' + CAST(@total_due AS VARCHAR) +
+              ' | Due Date: ' + CAST(@due_date AS VARCHAR);
+
+        -- You can also add logic to send alerts, update flags, etc. here.
+
+        FETCH NEXT FROM billing_cursor INTO @statement_id, @total_due, @due_date;
+    END
+
+    CLOSE billing_cursor;
+    DEALLOCATE billing_cursor;
+END;
+GO
+
+-- Run the procedure to test the cursor
+EXEC dbo.sp_ProcessBillingDue;
+GO
